@@ -753,15 +753,18 @@ function render(){
   if(state.installPrompt){ const b=document.getElementById('pwa-bar'); if(b) b.style.display='flex' }
 }
 
+// Senha master do painel admin — mude para a sua
+const ADMIN_SECRET = 'finpro@admin2025'
+
 function renderPage(){
   const el=document.getElementById('page-content')
   if(!el) return
   destroyCharts()
-  const pages={ dashboard:pgDashboard, fixas:pgFixas, variaveis:pgVariaveis, cartoes:pgCartoes, rendas:pgRendas, relatorios:pgRelatorios, configuracoes:pgConfig }
+  const pages={ dashboard:pgDashboard, fixas:pgFixas, variaveis:pgVariaveis, cartoes:pgCartoes, rendas:pgRendas, relatorios:pgRelatorios, configuracoes:pgConfig, admin:pgAdmin }
   el.innerHTML=(pages[state.page]||pgDashboard)()
-  // bind enter keys
   el.querySelectorAll('input').forEach(inp=>{ inp.addEventListener('keydown',e=>{ if(e.key==='Enter') e.target.closest('.card')?.querySelector('.btn-primary')?.click() }) })
   setTimeout(()=>renderCharts(),50)
+  if(state.page==='admin') loadAdminData()
 }
 
 function renderCharts(){
@@ -956,6 +959,7 @@ function renderShell(){
   </div>
   <div class="sb-nav">
     ${navItems.map(p=>`<button class="sb-item ${state.page===p.id?'active':''}" onclick="navTo('${p.id}')"><i class="ti ${p.icon}"></i><span>${p.label}</span>${p.badge?`<span class="sb-badge">${p.badge}</span>`:''}</button>`).join('')}
+    ${state.profile?.is_admin?`<button class="sb-item ${state.page==='admin'?'active':''}" onclick="navToAdmin()"><i class="ti ti-shield-lock" style="color:#f59e0b;"></i><span style="color:#f59e0b;">Painel Admin</span></button>`:''}
   </div>
   <div class="sb-footer">
     <button class="sb-item" onclick="signOut()"><i class="ti ti-logout"></i><span>Sair</span></button>
@@ -1232,9 +1236,236 @@ function showErr(tab, msg){
   if(btn){ btn.disabled=false; btn.innerHTML=tab==='login'?'<i class="ti ti-login"></i> Entrar':'<i class="ti ti-user-plus"></i> Criar conta grátis' }
 }
 
-// ══════════════════════════════════════════════════════════
-// PWA & INIT — REAL
-// ══════════════════════════════════════════════════════════
+// ── ADMIN PAGE ────────────────────────────────────────────
+function pgAdmin(){
+  // Verifica se é admin
+  if(!state.profile?.is_admin){
+    return `<div class="page-header"><div><h2><i class="ti ti-shield-lock" style="color:var(--amber);"></i> Painel Admin</h2></div></div>
+    <div class="card" style="text-align:center;padding:3rem;">
+      <div style="font-size:48px;margin-bottom:1rem;">🔐</div>
+      <div style="font-size:16px;font-weight:600;margin-bottom:.5rem;">Acesso restrito</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:1.5rem;">Digite a senha master para acessar o painel administrativo.</div>
+      <div style="max-width:300px;margin:0 auto;">
+        <div class="field" style="margin-bottom:.75rem;">
+          <label>Senha Master</label>
+          <input id="admin-pw" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkAdminPw()">
+        </div>
+        <div id="admin-pw-err" style="display:none;font-size:12px;color:var(--red);margin-bottom:.5rem;"></div>
+        <button class="btn-primary" style="width:100%;justify-content:center;" onclick="checkAdminPw()">
+          <i class="ti ti-shield-check"></i> Entrar
+        </button>
+      </div>
+    </div>`
+  }
+
+  return `
+<div class="page-header">
+  <div><h2><i class="ti ti-shield-lock" style="color:var(--amber);"></i> Painel Admin</h2><p>Gestão completa do SaaS</p></div>
+  <button class="btn-secondary" onclick="loadAdminData()"><i class="ti ti-refresh"></i> Atualizar</button>
+</div>
+
+<!-- MÉTRICAS SaaS -->
+<div class="metrics-grid" id="admin-metrics">
+  <div class="metric-card green"><div class="mc-label"><i class="ti ti-users"></i> Total assinantes</div><div class="mc-value" id="adm-total">—</div><div class="mc-sub">plano ativo</div></div>
+  <div class="metric-card blue"><div class="mc-label"><i class="ti ti-currency-dollar"></i> MRR estimado</div><div class="mc-value" id="adm-mrr">—</div><div class="mc-sub">R$ 19,90 × ativos</div></div>
+  <div class="metric-card amber"><div class="mc-label"><i class="ti ti-heart-handshake"></i> Cortesias ativas</div><div class="mc-value" id="adm-cortesia">—</div><div class="mc-sub">acessos gratuitos</div></div>
+  <div class="metric-card red"><div class="mc-label"><i class="ti ti-user-off"></i> Cancelados</div><div class="mc-value" id="adm-cancelados">—</div><div class="mc-sub">churn total</div></div>
+</div>
+
+<!-- CORTESIA RÁPIDA -->
+<div class="card">
+  <div class="card-title"><i class="ti ti-gift" style="color:var(--green);"></i> Conceder acesso cortesia</div>
+  <div class="form-inline" style="grid-template-columns:1fr 1fr auto;">
+    <div class="field">
+      <label>E-mail do usuário</label>
+      <input id="cortesia-email" type="email" placeholder="usuario@email.com">
+    </div>
+    <div class="field">
+      <label>Observação (opcional)</label>
+      <input id="cortesia-nota" type="text" placeholder="Ex: parceiro, influencer...">
+    </div>
+    <div class="field">
+      <label>&nbsp;</label>
+      <button class="btn-primary" onclick="darCortesia()"><i class="ti ti-gift"></i> Conceder</button>
+    </div>
+  </div>
+  <div id="cortesia-msg" style="font-size:12px;margin-top:8px;display:none;"></div>
+</div>
+
+<!-- LISTA DE USUÁRIOS -->
+<div class="card">
+  <div class="card-title" style="justify-content:space-between;">
+    <span><i class="ti ti-users"></i> Todos os usuários</span>
+    <div style="display:flex;gap:8px;">
+      <input id="admin-busca" type="text" placeholder="Buscar por e-mail..." style="font-size:12px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:5px 10px;color:var(--text);outline:none;width:200px;" oninput="filtrarUsuarios(this.value)">
+    </div>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="data-table" id="admin-tabela">
+      <thead><tr>
+        <th>E-mail</th>
+        <th>Nome</th>
+        <th>Status</th>
+        <th>Tipo</th>
+        <th>Desde</th>
+        <th>Ações</th>
+      </tr></thead>
+      <tbody id="admin-tbody">
+        <tr><td colspan="6" class="empty"><i class="ti ti-loader-2 spin"></i> Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>`
+}
+
+// ── ADMIN FUNCTIONS ───────────────────────────────────────
+let adminUsers = []
+
+function checkAdminPw(){
+  const pw = document.getElementById('admin-pw')?.value
+  const err = document.getElementById('admin-pw-err')
+  if(pw === ADMIN_SECRET){
+    // Marca como admin temporariamente na sessão
+    if(state.profile) state.profile.is_admin = true
+    navTo('admin')
+  } else {
+    if(err){ err.style.display='block'; err.textContent='Senha incorreta.' }
+    document.getElementById('admin-pw').value = ''
+  }
+}
+
+function navToAdmin(){
+  state.page = 'admin'
+  renderPage()
+  document.getElementById('main-content')?.scrollTo(0,0)
+}
+
+async function loadAdminData(){
+  const tbody = document.getElementById('admin-tbody')
+  if(!tbody) return
+
+  try {
+    // Busca todos os usuários via view admin
+    const { data, error } = await _supa
+      .from('admin_usuarios')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if(error) throw error
+    adminUsers = data || []
+    renderAdminMetrics()
+    renderAdminTabela(adminUsers)
+  } catch(e) {
+    // Fallback: busca profiles diretamente
+    const { data } = await _supa
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false })
+    adminUsers = (data||[]).map(p=>({...p, email: p.kiwify_email||'—'}))
+    renderAdminMetrics()
+    renderAdminTabela(adminUsers)
+  }
+}
+
+function renderAdminMetrics(){
+  const ativos     = adminUsers.filter(u => u.plano === 'ativo').length
+  const cortesias  = adminUsers.filter(u => u.cortesia === true && u.plano === 'ativo').length
+  const cancelados = adminUsers.filter(u => u.plano === 'cancelado' || u.plano === 'expirado').length
+  const mrr        = (ativos - cortesias) * 19.90
+
+  const set = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val }
+  set('adm-total',     ativos)
+  set('adm-mrr',       'R$ '+mrr.toLocaleString('pt-BR',{minimumFractionDigits:2}))
+  set('adm-cortesia',  cortesias)
+  set('adm-cancelados',cancelados)
+}
+
+function renderAdminTabela(users){
+  const tbody = document.getElementById('admin-tbody')
+  if(!tbody) return
+  if(!users.length){ tbody.innerHTML='<tr><td colspan="6" class="empty">Nenhum usuário encontrado.</td></tr>'; return }
+
+  tbody.innerHTML = users.map(u => {
+    const statusCls = u.plano==='ativo' ? 'b-green' : u.plano==='pendente' ? 'b-amber' : 'b-red'
+    const tipoCls   = u.cortesia ? 'b-purple' : u.is_admin ? 'b-amber' : 'b-blue'
+    const tipo      = u.cortesia ? '🎁 Cortesia' : u.is_admin ? '⭐ Admin' : '💳 Pago'
+    const desde     = u.assinatura_inicio ? new Date(u.assinatura_inicio).toLocaleDateString('pt-BR') : '—'
+    const email     = u.email || '—'
+    const nome      = u.nome  || '—'
+
+    return `<tr>
+      <td style="font-size:12px;">${email}</td>
+      <td style="font-size:12px;">${nome}</td>
+      <td><span class="badge ${statusCls}">${u.plano||'pendente'}</span></td>
+      <td><span class="badge ${tipoCls}" style="font-size:9px;">${tipo}</span></td>
+      <td style="font-size:11px;color:var(--text3);">${desde}</td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          ${u.plano !== 'ativo' ? `
+            <button class="btn-ok" style="font-size:11px;padding:3px 8px;" onclick="adminAtivar('${u.id}', false)" title="Ativar acesso">
+              <i class="ti ti-check"></i> Ativar
+            </button>` : ''}
+          ${u.plano === 'ativo' && !u.cortesia ? `
+            <button class="btn-del" style="font-size:11px;padding:3px 8px;" onclick="adminBloquear('${u.id}')" title="Bloquear acesso">
+              <i class="ti ti-ban"></i> Bloquear
+            </button>` : ''}
+          ${!u.cortesia && u.plano !== 'ativo' ? `
+            <button class="btn-secondary" style="font-size:11px;padding:3px 8px;" onclick="adminAtivar('${u.id}', true)" title="Dar cortesia">
+              <i class="ti ti-gift"></i>
+            </button>` : ''}
+        </div>
+      </td>
+    </tr>`
+  }).join('')
+}
+
+function filtrarUsuarios(q){
+  q = q.toLowerCase()
+  const filtrados = q ? adminUsers.filter(u =>
+    (u.email||'').toLowerCase().includes(q) ||
+    (u.nome||'').toLowerCase().includes(q)
+  ) : adminUsers
+  renderAdminTabela(filtrados)
+}
+
+async function adminAtivar(userId, cortesia){
+  const { data, error } = await _supa.rpc('admin_ativar_usuario', {
+    p_user_id: userId, p_cortesia: cortesia
+  })
+  if(error){ alert('Erro: '+error.message); return }
+  await loadAdminData()
+}
+
+async function adminBloquear(userId){
+  if(!confirm('Bloquear acesso deste usuário?')) return
+  const { error } = await _supa.rpc('admin_bloquear_usuario', { p_user_id: userId })
+  if(error){ alert('Erro: '+error.message); return }
+  await loadAdminData()
+}
+
+async function darCortesia(){
+  const email = document.getElementById('cortesia-email')?.value.trim()
+  const nota  = document.getElementById('cortesia-nota')?.value.trim() || 'Acesso cortesia'
+  const msg   = document.getElementById('cortesia-msg')
+  if(!email){ alert('Digite o e-mail.'); return }
+
+  const { data, error } = await _supa.rpc('admin_cortesia_email', {
+    p_email: email, p_notas: nota
+  })
+
+  if(error || data?.success === false){
+    const txt = error?.message || data?.error || 'Erro desconhecido'
+    if(msg){ msg.style.display='block'; msg.style.color='var(--red)'; msg.textContent='❌ '+txt }
+    return
+  }
+
+  if(msg){ msg.style.display='block'; msg.style.color='var(--green)'; msg.textContent='✅ Cortesia concedida para '+email }
+  document.getElementById('cortesia-email').value = ''
+  document.getElementById('cortesia-nota').value  = ''
+  await loadAdminData()
+}
+
+
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault(); state.installPrompt = e
   const b = document.getElementById('pwa-bar'); if(b) b.style.display='flex'
