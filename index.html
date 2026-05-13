@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FinPro">
+<title>FinPro — PWA SaaS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<!-- PWA MANIFEST inline para demo -->
+<script>
+const manifest = {
+  name: 'FinPro — Finanças Pessoais',
+  short_name: 'FinPro',
+  description: 'Controle financeiro inteligente',
+  theme_color: '#0f1117',
+  background_color: '#0f1117',
+  display: 'standalone',
+  start_url: '/',
+  icons: [{ src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%231D9E75"/><text y=".9em" font-size="80" x="10">💰</text></svg>', sizes: '192x192', type: 'image/svg+xml' }]
+}
+const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' })
+const link = document.createElement('link')
+link.rel = 'manifest'; link.href = URL.createObjectURL(blob)
+document.head.appendChild(link)
+</script>
+
+<style>
+/* ════════════════════════════════ TOKENS */
+:root {
+  --green:#1D9E75; --green-bg:rgba(29,158,117,.12);
+  --blue:#3b82f6;  --blue-bg:rgba(59,130,246,.12);
+  --amber:#f59e0b; --amber-bg:rgba(245,158,11,.12);
+  --red:#ef4444;   --red-bg:rgba(239,68,68,.12);
+  --purple:#a855f7;--purple-bg:rgba(168,85,247,.12);
+  --pink:#D4537E;  --pink-bg:rgba(212,83,126,.12);
+  --bg:#0f1117; --bg2:#161b27; --bg3:#1e2535;
+  --border:rgba(255,255,255,.06); --border2:rgba(255,255,255,.12);
+  --text:#f1f5f9; --text2:#94a3b8; --text3:#475569;
+  --radius:12px; --radius-sm:8px;
+  --shadow:0 4px 24px rgba(0,0,0,.4);
+  --font-d:'Syne',sans-serif; --font-b:'DM Sans',sans-serif;
+  --sidebar-w:220px; --bottom-h:64px; --safe-b:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{height:100%;-webkit-tap-highlight-color:transparent;}
+body{font-family:var(--font-b);background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;overscroll-behavior:none;-webkit-font-smoothing:antialiased;}
+#app{display:flex;min-height:100vh;min-height:100dvh;}
+button{font-family:var(--font-b);cursor:pointer;}
+input,select{font-family:var(--font-b);}
+a{color:var(--green);text-decoration:none;}
+
+/* ════════════════════════════════ AUTH */
+.auth-wrapper{width:100%;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:1rem;position:relative;overflow:hidden;}
+.auth-bg{position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(29,158,117,.18) 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 80% 80%,rgba(59,130,246,.12) 0%,transparent 60%),var(--bg);z-index:0;}
+.auth-card{position:relative;z-index:1;width:100%;max-width:420px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:20px;padding:2rem;box-shadow:var(--shadow);}
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:1.75rem;}
+.auth-logo-icon{width:44px;height:44px;background:linear-gradient(135deg,var(--green),#0d7a5a);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;flex-shrink:0;}
+.auth-brand{font-family:var(--font-d);font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px;}
+.auth-tagline{font-size:11px;color:var(--text3);}
+.auth-tabs{display:flex;background:var(--bg3);border-radius:var(--radius-sm);padding:3px;margin-bottom:1.5rem;}
+.auth-tab{flex:1;padding:8px;border:none;background:none;border-radius:6px;font-size:13px;font-weight:500;color:var(--text2);transition:all .2s;}
+.auth-tab.active{background:var(--bg2);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.25);}
+.auth-error{font-size:12px;padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:12px;}
+.auth-terms{font-size:11px;color:var(--text3);margin-top:.75rem;text-align:center;}
+.install-banner{display:flex;align-items:center;gap:8px;background:var(--green-bg);border:0.5px solid var(--green);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--green);margin-top:1rem;}
+.btn-install{margin-left:auto;background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;}
+
+/* KIWIFY CTA */
+.kiwify-cta{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,var(--bg3),var(--bg2));border:0.5px solid var(--green);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.kiwify-cta::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(29,158,117,.08),transparent);pointer-events:none;}
+.kiwify-cta:hover{border-color:var(--green);box-shadow:0 0 0 3px rgba(29,158,117,.15);transform:translateY(-1px);}
+.kiwify-cta-left{flex:1;}
+.kiwify-cta-right{text-align:right;flex-shrink:0;}
+
+/* ════════════════════════════════ SIDEBAR */
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--bg2);border-right:0.5px solid var(--border);height:100vh;height:100dvh;position:sticky;top:0;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;transition:width .25s,min-width .25s;flex-shrink:0;z-index:40;}
+.sidebar.collapsed{width:60px;min-width:60px;}
+.sidebar.collapsed .sb-logo-text,.sidebar.collapsed .sb-mes span,.sidebar.collapsed .sb-item>span,.sidebar.collapsed .sb-badge,.sidebar.collapsed .sb-plan{opacity:0;pointer-events:none;width:0;overflow:hidden;}
+.sb-logo{display:flex;align-items:center;gap:10px;padding:1.1rem 1rem;border-bottom:0.5px solid var(--border);overflow:hidden;white-space:nowrap;}
+.sb-logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--green),#0d7a5a);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;flex-shrink:0;}
+.sb-brand{font-family:var(--font-d);font-size:14px;font-weight:800;color:var(--text);display:block;}
+.sb-user{font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;display:block;}
+.sb-collapse{background:none;border:none;color:var(--text3);font-size:16px;margin-left:auto;padding:4px;flex-shrink:0;transition:color .15s;}
+.sb-collapse:hover{color:var(--text);}
+.sb-mes{display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;border-bottom:0.5px solid var(--border);font-size:12px;font-weight:500;color:var(--text2);white-space:nowrap;overflow:hidden;}
+.sb-mes button{background:none;border:none;color:var(--text3);font-size:14px;padding:2px 4px;transition:color .15s;}
+.sb-mes button:hover{color:var(--text);}
+.sb-nav{flex:1;padding:.5rem 0;}
+.sb-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 1rem;background:none;border:none;border-left:3px solid transparent;font-size:13px;color:var(--text2);text-align:left;white-space:nowrap;overflow:hidden;transition:all .15s;position:relative;}
+.sb-item i{font-size:16px;flex-shrink:0;width:20px;text-align:center;}
+.sb-item:hover{background:var(--bg3);color:var(--text);}
+.sb-item.active{background:var(--green-bg);color:var(--green);border-left-color:var(--green);}
+.sb-badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:99px;background:var(--red-bg);color:var(--red);font-weight:700;flex-shrink:0;}
+.sb-footer{border-top:0.5px solid var(--border);padding:.5rem 0;}
+.sb-plan{font-size:10px;color:var(--text3);text-align:center;padding:4px 1rem;white-space:nowrap;overflow:hidden;}
+
+/* ════════════════════════════════ MAIN */
+.main-content{flex:1;min-width:0;height:100vh;height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.page-wrap{max-width:1100px;margin:0 auto;padding:1.25rem 1rem 2rem;}
+
+/* ════════════════════════════════ BOTTOM NAV */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:calc(var(--bottom-h) + var(--safe-b));background:var(--bg2);border-top:0.5px solid var(--border);z-index:50;padding-bottom:var(--safe-b);}
+.bn-item{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:3px;background:none;border:none;color:var(--text3);font-size:9px;font-weight:500;padding:8px 4px;transition:color .15s;position:relative;}
+.bn-item i{font-size:20px;}
+.bn-item.active{color:var(--green);}
+.bn-badge{position:absolute;top:6px;right:calc(50% - 14px);background:var(--red);color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:99px;display:flex;align-items:center;justify-content:center;padding:0 4px;}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(var(--bottom-h) + var(--safe-b) + 16px);right:20px;width:52px;height:52px;border-radius:50%;background:var(--green);color:#fff;border:none;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(29,158,117,.45);z-index:45;transition:transform .15s,box-shadow .15s;}
+.fab:hover{transform:scale(1.08);}
+.fab.listening{animation:pulse 1s ease-in-out infinite;background:var(--red);}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+
+/* ════════════════════════════════ COMPONENTS */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:10px;padding-bottom:1rem;border-bottom:0.5px solid var(--border);}
+.page-header h2{font-family:var(--font-d);font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px;}
+.page-header p{font-size:12px;color:var(--text3);margin-top:2px;}
+.mes-nav{display:flex;align-items:center;gap:6px;background:var(--bg3);border-radius:var(--radius-sm);padding:4px 6px;}
+.mes-nav button{background:none;border:none;color:var(--text3);font-size:14px;padding:4px 6px;border-radius:4px;transition:all .15s;}
+.mes-nav button:hover{background:var(--bg2);color:var(--text);}
+.mes-nav span{font-size:13px;font-weight:500;color:var(--text);min-width:120px;text-align:center;}
+.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;margin-bottom:1rem;}
+.card-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:.85rem;text-transform:uppercase;letter-spacing:.5px;}
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem;}
+.metric-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:.9rem 1rem;position:relative;overflow:hidden;}
+.metric-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius) var(--radius) 0 0;}
+.metric-card.green::before{background:var(--green);}
+.metric-card.blue::before{background:var(--blue);}
+.metric-card.amber::before{background:var(--amber);}
+.metric-card.red::before{background:var(--red);}
+.mc-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:.4rem;display:flex;align-items:center;gap:5px;}
+.mc-value{font-family:var(--font-d);font-size:20px;font-weight:700;color:var(--text);margin-bottom:.2rem;}
+.mc-sub{font-size:11px;color:var(--text3);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+.score-ring{position:relative;width:80px;height:80px;flex-shrink:0;}
+.score-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:22px;font-weight:700;}
+.alert-box{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:var(--radius-sm);font-size:12px;}
+.alert-box.ok{background:var(--green-bg);border:0.5px solid var(--green);color:var(--green);}
+.alert-box.danger{background:var(--red-bg);border:0.5px solid var(--red);color:var(--red);}
+.alert-box i{font-size:16px;flex-shrink:0;margin-top:1px;}
+.venc-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:12px;}
+.venc-row:last-child{border-bottom:none;}
+.dias-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;}
+.dias-chip.hoje{background:var(--red-bg);color:var(--red);}
+.dias-chip.urgente{background:var(--amber-bg);color:var(--amber);}
+.dias-chip.ok{background:var(--green-bg);color:var(--green);}
+.prog-bar{height:5px;background:var(--bg3);border-radius:99px;overflow:hidden;}
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:600;padding:0 0 8px;border-bottom:0.5px solid var(--border);text-align:left;}
+.data-table td{padding:8px 0;border-bottom:0.5px solid var(--border);color:var(--text2);vertical-align:middle;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table td.empty{color:var(--text3);font-size:12px;padding:16px 0;text-align:center;}
+.badge{display:inline-flex;align-items:center;font-size:10px;padding:2px 7px;border-radius:99px;font-weight:600;margin-left:4px;}
+.b-green{background:var(--green-bg);color:var(--green);}
+.b-blue{background:var(--blue-bg);color:var(--blue);}
+.b-amber{background:var(--amber-bg);color:var(--amber);}
+.b-red{background:var(--red-bg);color:var(--red);}
+.b-purple{background:var(--purple-bg);color:var(--purple);}
+.b-pink{background:var(--pink-bg);color:var(--pink);}
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);font-weight:500;}
+.field input,.field select{background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:7px 10px;font-size:13px;color:var(--text);outline:none;width:100%;transition:border-color .15s;}
+.field input:focus,.field select:focus{border-color:var(--green);}
+.field input::placeholder{color:var(--text3);}
+.form-inline{display:grid;gap:8px;align-items:end;}
+.btn-primary{display:inline-flex;align-items:center;gap:6px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px 14px;font-size:13px;font-weight:500;transition:opacity .15s;white-space:nowrap;}
+.btn-primary:hover{opacity:.88;}
+.btn-primary.full{width:100%;justify-content:center;padding:11px;font-size:14px;font-weight:600;margin-bottom:8px;}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+.btn-secondary{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--text2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:7px 12px;font-size:12px;font-weight:500;transition:all .15s;white-space:nowrap;}
+.btn-secondary:hover{background:var(--bg2);color:var(--text);}
+.btn-ghost{display:block;width:100%;background:none;border:none;color:var(--text3);font-size:13px;padding:8px;text-align:center;}
+.btn-ghost:hover{color:var(--text);}
+.btn-danger{display:inline-flex;align-items:center;gap:6px;background:var(--red-bg);color:var(--red);border:0.5px solid var(--red);border-radius:var(--radius-sm);padding:7px 12px;font-size:13px;font-weight:500;}
+.btn-danger:hover{background:var(--red);color:#fff;}
+.btn-del{background:none;border:none;color:var(--text3);font-size:14px;padding:3px 5px;border-radius:4px;}
+.btn-del:hover{color:var(--red);background:var(--red-bg);}
+.btn-ok{background:var(--green-bg);border:none;color:var(--green);font-size:13px;padding:3px 7px;border-radius:4px;}
+.btn-ok:hover{background:var(--green);color:#fff;}
+.toggle-status{font-size:11px;padding:3px 10px;border-radius:99px;border:0.5px solid var(--border2);background:var(--bg3);color:var(--text3);}
+.toggle-status.on{background:var(--green-bg);border-color:var(--green);color:var(--green);}
+.link-btn{background:none;border:none;color:var(--green);font-size:13px;cursor:pointer;}
+.toggle-sm{position:relative;display:inline-block;width:36px;height:20px;cursor:pointer;flex-shrink:0;}
+.toggle-sm input{opacity:0;width:0;height:0;}
+.toggle-track{position:absolute;inset:0;background:var(--bg3);border:0.5px solid var(--border2);border-radius:99px;transition:.2s;}
+.toggle-track::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:2px;background:#fff;border-radius:50%;transition:.2s;}
+.toggle-sm input:checked+.toggle-track{background:var(--green);border-color:var(--green);}
+.toggle-sm input:checked+.toggle-track::before{transform:translateX(16px);}
+.renda-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px;}
+.renda-total{padding:10px 0 0;font-size:13px;color:var(--text2);border-top:0.5px solid var(--border);margin-top:4px;}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;margin-bottom:1rem;}
+.cartao-visual-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;}
+.cartao-add-card{background:var(--bg2);border:0.5px dashed var(--border2);border-radius:var(--radius);padding:1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;color:var(--text3);font-size:13px;min-height:130px;}
+.cartao-add-card i{font-size:28px;}
+.cartao-add-card:hover{border-color:var(--green);color:var(--green);background:var(--green-bg);}
+.config-section{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1rem;}
+.config-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:0.5px solid var(--border);font-size:13px;gap:12px;}
+.config-row:last-child{border-bottom:none;}
+.config-row label{color:var(--text2);}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px);}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--bg2);border:0.5px solid var(--border2);border-radius:16px;padding:1.5rem;width:100%;max-width:460px;box-shadow:var(--shadow);}
+.modal h3{font-family:var(--font-d);font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:.5rem;}
+.modal p{font-size:13px;color:var(--text2);margin-bottom:1rem;}
+.modal .field{margin-bottom:.75rem;}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:1.25rem;}
+.btn-cancel{background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);border-radius:var(--radius-sm);padding:8px 14px;font-size:13px;}
+.btn-confirm{display:inline-flex;align-items:center;gap:6px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px 16px;font-size:13px;font-weight:600;}
+.loading-spinner{display:flex;align-items:center;justify-content:center;gap:10px;padding:3rem;font-size:14px;color:var(--text3);}
+.spin{animation:spin .8s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.pwa-install-bar{position:fixed;bottom:calc(var(--bottom-h) + var(--safe-b) + 80px);left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:var(--bg2);border:0.5px solid var(--green);border-radius:99px;padding:8px 16px;font-size:12px;color:var(--text2);box-shadow:var(--shadow);z-index:44;white-space:nowrap;}
+.pwa-install-bar button{background:var(--green);color:#fff;border:none;border-radius:99px;padding:4px 12px;font-size:12px;font-weight:600;}
+
+/* ════════════════════════════════ MOBILE */
+@media(max-width:900px){
+  .sidebar{display:none;}
+  .bottom-nav{display:flex;}
+  .fab{bottom:calc(var(--bottom-h) + var(--safe-b) + 12px);}
+  .main-content{padding-bottom:calc(var(--bottom-h) + var(--safe-b) + 8px);}
+  .page-wrap{padding:1rem .75rem;}
+  .metrics-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .mc-value{font-size:17px;}
+  .grid2{grid-template-columns:1fr;}
+  .form-inline{grid-template-columns:1fr 1fr!important;}
+  .form-inline>*:last-child{grid-column:1/-1;}
+  .cards-grid{grid-template-columns:1fr;}
+  .page-header{flex-direction:column;align-items:flex-start;gap:8px;}
+}
+@media(max-width:480px){
+  .metrics-grid{grid-template-columns:repeat(2,1fr);}
+  .mc-value{font-size:15px;}
+  .card{padding:.85rem .9rem;}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// SUPABASE — CONEXÃO REAL
+// ══════════════════════════════════════════════════════════
+const SUPABASE_URL  = 'https://kfmivnhjmltjcuucoziu.supabase.co'
+const SUPABASE_KEY  = 'sb_publishable_DfN2BlkSpD1YKw1Ene4sZQ_RjVlON6t'
+const _supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+})
+
+// ── AUTH REAL ─────────────────────────────────────────────
+async function supaSignIn(email, pw) {
+  const { data, error } = await _supa.auth.signInWithPassword({ email, password: pw })
+  if (error) throw error
+  return data.user
+}
+async function supaSignUp(email, pw, nome) {
+  const { data, error } = await _supa.auth.signUp({ email, password: pw, options: { data: { nome } } })
+  if (error) throw error
+  return data.user
+}
+async function supaSignOut() { await _supa.auth.signOut() }
+async function supaGetUser() {
+  const { data } = await _supa.auth.getUser()
+  return data?.user || null
+}
+
+// ── DB HELPERS ────────────────────────────────────────────
+const DB = {
+  async getProfile(uid) {
+    const { data } = await _supa.from('profiles').select('*').eq('id', uid).single()
+    return data
+  },
+  async updateProfile(uid, d) { await _supa.from('profiles').update(d).eq('id', uid) },
+  async getCartoes(uid) { const { data } = await _supa.from('cartoes').select('*').eq('user_id', uid).order('created_at'); return data || [] },
+  async addCartao(uid, d) { const { data } = await _supa.from('cartoes').insert({ ...d, user_id: uid }).select().single(); return data },
+  async updateCartao(id, d) { await _supa.from('cartoes').update(d).eq('id', id) },
+  async deleteCartao(id) { await _supa.from('cartoes').delete().eq('id', id) },
+  async getRendas(uid, mes) { const { data } = await _supa.from('rendas').select('*').eq('user_id', uid).eq('mes', mes); return data || [] },
+  async addRenda(uid, d) { const { data } = await _supa.from('rendas').insert({ ...d, user_id: uid }).select().single(); return data },
+  async deleteRenda(id) { await _supa.from('rendas').delete().eq('id', id) },
+  async getFixas(uid) { const { data } = await _supa.from('contas_fixas').select('*').eq('user_id', uid).order('dia'); return data || [] },
+  async addFixa(uid, d) { const { data } = await _supa.from('contas_fixas').insert({ ...d, user_id: uid }).select().single(); return data },
+  async updateFixa(id, d) { await _supa.from('contas_fixas').update(d).eq('id', id) },
+  async deleteFixa(id) { await _supa.from('contas_fixas').delete().eq('id', id) },
+  async getVariaveis(uid, mes) { const { data } = await _supa.from('contas_variaveis').select('*').eq('user_id', uid).eq('mes', mes).order('data'); return data || [] },
+  async addVariavel(uid, d) { const { data } = await _supa.from('contas_variaveis').insert({ ...d, user_id: uid }).select().single(); return data },
+  async updateVariavel(id, d) { await _supa.from('contas_variaveis').update(d).eq('id', id) },
+  async deleteVariavel(id) { await _supa.from('contas_variaveis').delete().eq('id', id) },
+  async getLancamentos(uid, mes) { const { data } = await _supa.from('lancamentos').select('*, cartoes(nome,cor,sigla)').eq('user_id', uid).eq('mes', mes); return data || [] },
+  async addLancamento(uid, d) { const { data } = await _supa.from('lancamentos').insert({ ...d, user_id: uid }).select().single(); return data },
+  async deleteLancamento(id) { await _supa.from('lancamentos').delete().eq('id', id) },
+}
+
+// ══════════════════════════════════════════════════════════
+// ESTADO GLOBAL
+// ══════════════════════════════════════════════════════════
+
+// 🔗 Cole aqui o link da sua página de vendas na Kiwify
+const KIWIFY_URL = 'https://pay.kiwify.com.br/SEU-LINK-AQUI'
+const mNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+
+function fmtMes(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0') }
+function mesLabel(m){ const [y,mo]=m.split('-'); return mNames[parseInt(mo)-1]+' '+y }
+const fmt = v => 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})
+function myVal(item,val){ return item.casal ? val*((state.profile?.casal_pct||50)/100) : val }
+
+let state = {
+  user: null,
+  profile: null,
+  mes: fmtMes(new Date()),
+  cartoes: [],
+  rendas: [],
+  fixas: [],
+  variaveis: [],
+  lancamentos: [],
+  page: 'dashboard',
+  installPrompt: null,
+}
+
+// DEMO: simula usuário logado com dados de exemplo
+function loadDemo(){
+  state.user = { id:'demo', email:'demo@finpro.app' }
+  state.profile = { nome:'Demo User', plano:'pro', casal_pct:50 }
+  state.cartoes = [
+    { id:'c1', nome:'Nubank',   sigla:'NU', cor:'#8b5cf6', limite:5000,  usado:1850 },
+    { id:'c2', nome:'Itaú',    sigla:'IT', cor:'#f97316', limite:8000,  usado:3200 },
+  ]
+  state.rendas = [
+    { id:'r1', fonte:'Salário principal', valor:4500 },
+    { id:'r2', fonte:'Freelance',         valor:800  },
+  ]
+  state.fixas = [
+    { id:'f1', desc:'Aluguel',    dia:10, valor:1200, ativo:true,  casal:false },
+    { id:'f2', desc:'Internet',   dia:5,  valor:120,  ativo:true,  casal:true  },
+    { id:'f3', desc:'Energia',    dia:15, valor:180,  ativo:true,  casal:true  },
+    { id:'f4', desc:'Academia',   dia:1,  valor:90,   ativo:true,  casal:false },
+    { id:'f5', desc:'Streaming',  dia:12, valor:55,   ativo:false, casal:false },
+  ]
+  const hoje = new Date()
+  const amanha = new Date(hoje); amanha.setDate(hoje.getDate()+1)
+  const semana = new Date(hoje); semana.setDate(hoje.getDate()+5)
+  const atrasado = new Date(hoje); atrasado.setDate(hoje.getDate()-3)
+  state.variaveis = [
+    { id:'v1', desc:'Consulta médica',  valor:250,  data:semana.toISOString().split('T')[0],    status:'pendente', parcelas:1, casal:false },
+    { id:'v2', desc:'Supermercado',     valor:320,  data:amanha.toISOString().split('T')[0],    status:'pendente', parcelas:1, casal:true  },
+    { id:'v3', desc:'Farmácia',         valor:85,   data:atrasado.toISOString().split('T')[0],  status:'atrasado', parcelas:1, casal:false },
+    { id:'v4', desc:'Notebook 12x',     valor:300,  data:hoje.toISOString().split('T')[0],      status:'pendente', parcelas:8, casal:false },
+  ]
+  state.lancamentos = [
+    { id:'l1', desc:'iFood',      cartao_id:'c1', cartoes:{nome:'Nubank',cor:'#8b5cf6',sigla:'NU'}, valor:85,  casal:true  },
+    { id:'l2', desc:'Posto Shell',cartao_id:'c2', cartoes:{nome:'Itaú',  cor:'#f97316',sigla:'IT'}, valor:180, casal:false },
+    { id:'l3', desc:'Zara',       cartao_id:'c1', cartoes:{nome:'Nubank',cor:'#8b5cf6',sigla:'NU'}, valor:340, casal:false },
+  ]
+}
+
+// ══════════════════════════════════════════════════════════
+// CÁLCULOS
+// ══════════════════════════════════════════════════════════
+function calcTotais(){
+  const totalR = state.rendas.reduce((s,r)=>s+r.valor,0)
+  const totalF = state.fixas.filter(f=>f.ativo).reduce((s,f)=>s+myVal(f,f.valor),0)
+  const totalV = state.variaveis.reduce((s,c)=>s+myVal(c,c.valor),0)
+  const totalL = state.lancamentos.reduce((s,l)=>s+myVal(l,l.valor),0)
+  return { totalR, totalF, totalV, totalL, saldo: totalR-totalF-totalV-totalL }
+}
+
+function calcScore(){
+  const { totalR, totalF, totalV, totalL } = calcTotais()
+  if(totalR===0) return { score:0, label:'Sem dados', cor:'#6b7280' }
+  const comp = (totalF+totalV+totalL)/totalR
+  const atrasadas = state.variaveis.filter(c=>c.status==='atrasado').length
+  let score = 100
+  if(comp>0.9) score-=40; else if(comp>0.8) score-=25; else if(comp>0.7) score-=15; else if(comp>0.6) score-=8
+  score -= atrasadas*12
+  score = Math.max(0, Math.min(100, Math.round(score)))
+  const label = score>=80?'Excelente 🏆':score>=65?'Bom 👍':score>=45?'Atenção ⚠️':'Crítico 🚨'
+  const cor   = score>=80?'#1D9E75':score>=65?'#3b82f6':score>=45?'#f59e0b':'#ef4444'
+  return { score, label, cor, comp }
+}
+
+function getVencProximos(){
+  const hoje = new Date(); hoje.setHours(0,0,0,0)
+  const lim  = new Date(hoje); lim.setDate(hoje.getDate()+7)
+  const items = []
+  state.variaveis.filter(c=>c.status!=='pago').forEach(c=>{
+    const d = new Date(c.data+'T12:00:00')
+    if(d>=hoje&&d<=lim) items.push({desc:c.desc,valor:myVal(c,c.valor),dias:Math.round((d-hoje)/86400000),tipo:'variável'})
+  })
+  state.fixas.filter(f=>f.ativo).forEach(f=>{
+    const dV = new Date(hoje.getFullYear(),hoje.getMonth(),f.dia)
+    if(dV<hoje) dV.setMonth(dV.getMonth()+1)
+    const dias = Math.round((dV-hoje)/86400000)
+    if(dias<=7) items.push({desc:f.desc,valor:myVal(f,f.valor),dias,tipo:'fixa'})
+  })
+  return items.sort((a,b)=>a.dias-b.dias)
+}
+
+// ══════════════════════════════════════════════════════════
+// NAVEGAÇÃO
+// ══════════════════════════════════════════════════════════
+function navTo(page){
+  state.page = page
+  renderPage()
+  document.getElementById('main-content')?.scrollTo(0,0)
+  document.querySelectorAll('.sb-item,.bn-item').forEach(b=>b.classList.toggle('active', b.onclick?.toString().includes(`'${page}'`)))
+}
+
+async function changeMes(dir){
+  const [y,m] = state.mes.split('-').map(Number)
+  const d = new Date(y, m-1+dir, 1)
+  state.mes = fmtMes(d)
+  await loadMes()
+  render()
+}
+
+function toggleSidebar(){
+  const sb = document.getElementById('sidebar')
+  const ic = document.getElementById('sb-ci')
+  sb?.classList.toggle('collapsed')
+  if(ic) ic.className = sb?.classList.contains('collapsed') ? 'ti ti-layout-sidebar-left-expand' : 'ti ti-layout-sidebar-left-collapse'
+}
+
+// ══════════════════════════════════════════════════════════
+// AUTH HANDLERS — REAL
+// ══════════════════════════════════════════════════════════
+async function handleLogin(){
+  const email = document.getElementById('login-email').value.trim()
+  const pw    = document.getElementById('login-pw').value
+  if(!email||!pw){ showErr('login','Preencha e-mail e senha.'); return }
+  const btn = document.getElementById('login-btn')
+  btn.disabled=true; btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Entrando...'
+  try {
+    const user = await supaSignIn(email, pw)
+    state.user = user
+    await loadAll()
+    render()
+  } catch(e) {
+    showErr('login', e.message.includes('Invalid') ? 'E-mail ou senha incorretos.' : e.message)
+    btn.disabled=false; btn.innerHTML='<i class="ti ti-login"></i> Entrar'
+  }
+}
+
+// Criar senha após retorno da Kiwify
+async function handleCriarSenha(email, orderId){
+  const pw  = document.getElementById('cs-pw')?.value
+  const pw2 = document.getElementById('cs-pw2')?.value
+  const err = document.getElementById('cs-error')
+  const btn = document.getElementById('cs-btn')
+
+  if(!pw || pw.length < 6){
+    err.style.display='block'; err.style.color='var(--red)'; err.style.background='var(--red-bg)'; err.style.border='0.5px solid var(--red)'
+    err.textContent='A senha deve ter pelo menos 6 caracteres.'; return
+  }
+  if(pw !== pw2){
+    err.style.display='block'; err.style.color='var(--red)'; err.style.background='var(--red-bg)'; err.style.border='0.5px solid var(--red)'
+    err.textContent='As senhas não coincidem.'; return
+  }
+
+  btn.disabled=true; btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Criando acesso...'
+
+  try {
+    // Tenta cadastrar — se já existe, faz login
+    const { error: signUpError } = await _supa.auth.signUp({ email, password: pw })
+
+    if(signUpError && signUpError.message.includes('already registered')){
+      // Usuário já existe, faz login direto
+      await supaSignIn(email, pw)
+    } else if(signUpError) {
+      throw signUpError
+    } else {
+      // Cadastro novo — faz login
+      await supaSignIn(email, pw)
+    }
+
+    // Limpa parâmetros da URL
+    window.history.replaceState({}, '', window.location.pathname)
+
+    state.user = (await _supa.auth.getUser()).data?.user
+    await loadAll()
+    render()
+  } catch(e) {
+    err.style.display='block'; err.style.color='var(--red)'; err.style.background='var(--red-bg)'; err.style.border='0.5px solid var(--red)'
+    err.textContent = e.message || 'Erro ao criar acesso. Tente novamente.'
+    btn.disabled=false; btn.innerHTML='<i class="ti ti-rocket"></i> Acessar o FinPro'
+  }
+}
+  const nome  = document.getElementById('signup-nome').value.trim()
+  const email = document.getElementById('signup-email').value.trim()
+  const pw    = document.getElementById('signup-pw').value
+  if(!nome||!email||!pw){ showErr('signup','Preencha todos os campos.'); return }
+  if(pw.length<6){ showErr('signup','Senha deve ter pelo menos 6 caracteres.'); return }
+  const btn = document.getElementById('signup-btn')
+  btn.disabled=true; btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Criando...'
+  try {
+    await supaSignUp(email, pw, nome)
+    const err = document.getElementById('signup-error')
+    err.style.display='block'; err.style.color='var(--green)'; err.style.background='var(--green-bg)'; err.style.border='0.5px solid var(--green)'
+    err.textContent='✅ Conta criada! Verifique seu e-mail para confirmar.'
+  } catch(e) {
+    showErr('signup', e.message)
+  } finally {
+    btn.disabled=false; btn.innerHTML='<i class="ti ti-user-plus"></i> Criar conta grátis'
+  }
+}
+
+async function handleForgot(){
+  const email = document.getElementById('login-email').value.trim()
+  if(!email){ alert('Digite seu e-mail primeiro.'); return }
+  await _supa.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
+  alert('✅ E-mail de recuperação enviado para '+email)
+}
+
+async function signOut(){
+  await supaSignOut()
+  state.user=null; state.profile=null
+  state.cartoes=[]; state.rendas=[]; state.fixas=[]; state.variaveis=[]; state.lancamentos=[]
+  render()
+}
+
+// ══════════════════════════════════════════════════════════
+// LOAD DATA — REAL
+// ══════════════════════════════════════════════════════════
+async function loadAll(){
+  if(!state.user) return
+  const uid = state.user.id
+  state.loading = true
+  const [prof, cart, rend, fix, vari, lanc] = await Promise.all([
+    DB.getProfile(uid),
+    DB.getCartoes(uid),
+    DB.getRendas(uid, state.mes),
+    DB.getFixas(uid),
+    DB.getVariaveis(uid, state.mes),
+    DB.getLancamentos(uid, state.mes),
+  ])
+  state.profile     = prof
+  state.cartoes     = cart
+  state.rendas      = rend
+  state.fixas       = fix
+  state.variaveis   = vari
+  state.lancamentos = lanc
+  state.loading = false
+}
+
+async function loadMes(){
+  if(!state.user) return
+  const uid = state.user.id
+  const [rend, vari, lanc] = await Promise.all([
+    DB.getRendas(uid, state.mes),
+    DB.getVariaveis(uid, state.mes),
+    DB.getLancamentos(uid, state.mes),
+  ])
+  state.rendas=rend; state.variaveis=vari; state.lancamentos=lanc
+}
+
+function switchAuthTab(tab,btn){
+  document.querySelectorAll('.auth-tab').forEach(b=>b.classList.remove('active'))
+  btn.classList.add('active')
+  document.getElementById('tab-login').style.display  = tab==='login' ?'block':'none'
+  document.getElementById('tab-signup').style.display = tab==='signup'?'block':'none'
+}
+
+// ══════════════════════════════════════════════════════════
+// AÇÕES DE DADOS — REAL
+// ══════════════════════════════════════════════════════════
+function uid(){ return 'tmp-'+Math.random().toString(36).substr(2,9) }
+
+async function addFixa(){
+  const desc=document.getElementById('f-desc').value.trim()
+  const dia =parseInt(document.getElementById('f-dia').value)
+  const val =parseFloat(document.getElementById('f-valor').value)
+  const cas =document.getElementById('f-casal').checked
+  if(!desc||isNaN(dia)||isNaN(val)) return
+  const row = await DB.addFixa(state.user.id, { descricao:desc, dia, valor:val, ativo:true, casal:cas })
+  if(row) state.fixas.push({...row, desc:row.descricao})
+  else state.fixas.push({ id:uid(), desc, dia, valor:val, ativo:true, casal:cas })
+  document.getElementById('f-desc').value=''
+  document.getElementById('f-dia').value=''
+  document.getElementById('f-valor').value=''
+  render()
+}
+async function toggleFixa(id){
+  const f=state.fixas.find(x=>x.id===id); if(!f) return
+  f.ativo=!f.ativo
+  await DB.updateFixa(id, { ativo:f.ativo })
+  render()
+}
+async function delFixa(id){
+  state.fixas=state.fixas.filter(x=>x.id!==id)
+  await DB.deleteFixa(id)
+  render()
+}
+
+async function addVariavel(){
+  const desc=document.getElementById('v-desc').value.trim()
+  const data=document.getElementById('v-data').value
+  const val =parseFloat(document.getElementById('v-valor').value)
+  const parc=parseInt(document.getElementById('v-parc').value)||1
+  const cas =document.getElementById('v-casal').checked
+  if(!desc||!data||isNaN(val)) return
+  const dt=new Date(data+'T12:00:00'), hoje=new Date(); hoje.setHours(0,0,0,0)
+  const status = dt<hoje ? 'atrasado' : 'pendente'
+  const row = await DB.addVariavel(state.user.id, { descricao:desc, data, valor:val, parcelas:parc, casal:cas, status, mes:state.mes })
+  state.variaveis.push(row ? {...row, desc:row.descricao} : { id:uid(), desc, data, valor:val, parcelas:parc, casal:cas, status })
+  document.getElementById('v-desc').value=''
+  document.getElementById('v-data').value=''
+  document.getElementById('v-valor').value=''
+  document.getElementById('v-parc').value=''
+  render()
+}
+async function markPago(id){
+  state.variaveis.find(x=>x.id===id).status='pago'
+  await DB.updateVariavel(id, { status:'pago' })
+  render()
+}
+async function delVariavel(id){
+  state.variaveis=state.variaveis.filter(x=>x.id!==id)
+  await DB.deleteVariavel(id)
+  render()
+}
+
+async function addLanc(){
+  const desc  =document.getElementById('l-desc').value.trim()
+  const cartId=document.getElementById('l-cartao')?.value
+  const val   =parseFloat(document.getElementById('l-valor').value)
+  const cas   =document.getElementById('l-casal').checked
+  if(!desc||!cartId||isNaN(val)) return
+  const c=state.cartoes.find(x=>x.id===cartId)
+  if(c){ c.usado+=val; await DB.updateCartao(cartId, { usado:c.usado }) }
+  const row = await DB.addLancamento(state.user.id, { descricao:desc, cartao_id:cartId, valor:val, casal:cas, mes:state.mes })
+  state.lancamentos.push(row ? {...row, desc:row.descricao, cartoes:c?{nome:c.nome,cor:c.cor,sigla:c.sigla}:{}} : { id:uid(), desc, cartao_id:cartId, cartoes:c?{nome:c.nome,cor:c.cor,sigla:c.sigla}:{}, valor:val, casal:cas })
+  document.getElementById('l-desc').value=''
+  document.getElementById('l-valor').value=''
+  render()
+}
+async function delLanc(id){
+  const l=state.lancamentos.find(x=>x.id===id)
+  const c=state.cartoes.find(x=>x.id===l?.cartao_id)
+  if(c){ c.usado=Math.max(0,c.usado-l.valor); await DB.updateCartao(c.id, { usado:c.usado }) }
+  state.lancamentos=state.lancamentos.filter(x=>x.id!==id)
+  await DB.deleteLancamento(id)
+  render()
+}
+
+async function addCartao(){
+  const nome  =document.getElementById('nc-nome')?.value.trim()
+  const sigla =document.getElementById('nc-sigla')?.value.trim().toUpperCase()
+  const limite=parseFloat(document.getElementById('nc-limite')?.value)
+  const cor   =document.getElementById('nc-cor')?.value||'#6b7280'
+  if(!nome||isNaN(limite)) return
+  const row = await DB.addCartao(state.user.id, { nome, sigla:sigla||nome.substring(0,2).toUpperCase(), cor, limite, usado:0 })
+  state.cartoes.push(row || { id:uid(), nome, sigla:sigla||nome.substring(0,2).toUpperCase(), cor, limite, usado:0 })
+  document.getElementById('nc-nome').value=''
+  document.getElementById('nc-sigla').value=''
+  document.getElementById('nc-limite').value=''
+  document.getElementById('add-cartao-form').style.display='none'
+  render()
+}
+async function delCartao(id){
+  state.cartoes=state.cartoes.filter(x=>x.id!==id)
+  await DB.deleteCartao(id)
+  render()
+}
+
+async function addRenda(){
+  const fonte=document.getElementById('r-fonte')?.value.trim()
+  const val  =parseFloat(document.getElementById('r-valor')?.value)
+  if(!fonte||isNaN(val)) return
+  const row = await DB.addRenda(state.user.id, { fonte, valor:val, mes:state.mes })
+  state.rendas.push(row || { id:uid(), fonte, valor:val })
+  document.getElementById('r-fonte').value=''
+  document.getElementById('r-valor').value=''
+  render()
+}
+async function delRenda(id){
+  state.rendas=state.rendas.filter(x=>x.id!==id)
+  await DB.deleteRenda(id)
+  render()
+}
+
+// Voz
+async function startVoice(){
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
+    alert('Reconhecimento de voz não suportado neste navegador.\nUse Chrome no Android/Desktop.'); return
+  }
+  const btn=document.getElementById('voice-btn'); btn.classList.add('listening')
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition
+  const rec=new SR(); rec.lang='pt-BR'; rec.continuous=false; rec.interimResults=false
+  rec.onresult=(e)=>{
+    btn.classList.remove('listening')
+    const texto=e.results[0][0].transcript
+    document.getElementById('voice-texto-original').textContent=`"${texto}"`
+    const match=texto.match(/(\d+(?:[.,]\d{1,2})?)/)
+    document.getElementById('voice-valor').value=match?parseFloat(match[1].replace(',','.')):0
+    document.getElementById('voice-desc').value=texto.replace(/(\d+(?:[.,]\d{1,2})?)/,'').replace(/reais?|r\$/gi,'').trim()||texto
+    document.getElementById('voice-modal').classList.add('show')
+  }
+  rec.onerror=()=>btn.classList.remove('listening')
+  rec.start()
+}
+
+function confirmVoice(){
+  const desc =document.getElementById('voice-desc').value
+  const valor=parseFloat(document.getElementById('voice-valor').value)||0
+  const hoje =new Date().toISOString().split('T')[0]
+  state.variaveis.push({ id:uid(), desc, data:hoje, valor, parcelas:1, casal:false, status:'pendente' })
+  document.getElementById('voice-modal').classList.remove('show')
+  render()
+}
+
+async function enableNotifications(){
+  if(!('Notification' in window)){ alert('Notificações não suportadas.'); return }
+  const p=await Notification.requestPermission()
+  if(p==='granted'){
+    new Notification('FinPro ativado! 🎉',{ body:'Você receberá alertas de vencimentos próximos.', icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%231D9E75"/><text y=".9em" font-size="80" x="10">💰</text></svg>' })
+    alert('✅ Notificações ativadas!')
+  } else { alert('Permissão negada. Ative nas configurações do navegador.') }
+}
+
+async function installPWA(){
+  if(!state.installPrompt){ alert('Para instalar:\n📱 Android (Chrome): Menu ⋮ → "Adicionar à tela inicial"\n🍎 iPhone (Safari): Botão Compartilhar → "Adicionar à Tela de Início"'); return }
+  state.installPrompt.prompt()
+  await state.installPrompt.userChoice
+  state.installPrompt=null
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════════
+let charts={}
+function destroyCharts(){ Object.values(charts).forEach(c=>c?.destroy()); charts={} }
+
+function render(){
+  const app=document.getElementById('app')
+  if(!app) return
+  // Não logado → tela de auth/vendas
+  if(!state.user){ app.innerHTML=renderAuth(); return }
+  // Logado mas sem plano ativo → tela de bloqueio
+  if(!state.profile || state.profile.plano !== 'ativo'){
+    app.innerHTML=renderBloqueio(); return
+  }
+  // Logado e com plano ativo → app completo
+  app.innerHTML=renderShell()
+  renderPage()
+  if(state.installPrompt){ const b=document.getElementById('pwa-bar'); if(b) b.style.display='flex' }
+}
+
+function renderPage(){
+  const el=document.getElementById('page-content')
+  if(!el) return
+  destroyCharts()
+  const pages={ dashboard:pgDashboard, fixas:pgFixas, variaveis:pgVariaveis, cartoes:pgCartoes, rendas:pgRendas, relatorios:pgRelatorios, configuracoes:pgConfig }
+  el.innerHTML=(pages[state.page]||pgDashboard)()
+  // bind enter keys
+  el.querySelectorAll('input').forEach(inp=>{ inp.addEventListener('keydown',e=>{ if(e.key==='Enter') e.target.closest('.card')?.querySelector('.btn-primary')?.click() }) })
+  setTimeout(()=>renderCharts(),50)
+}
+
+function renderCharts(){
+  const {totalR,totalF,totalV,totalL}=calcTotais()
+  const barCtx=document.getElementById('barChart')
+  if(barCtx){ charts.bar=new Chart(barCtx,{type:'bar',data:{labels:['Receitas','Fixas','Variáveis','Cartão'],datasets:[{data:[totalR,totalF,totalV,totalL],backgroundColor:['#1D9E75','#3b82f6','#f59e0b','#a855f7'],borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',color:'#6b7280',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'},border:{display:false}},x:{ticks:{color:'#6b7280',font:{size:10}},grid:{display:false},border:{display:false}}}}})}
+  const pieCtx=document.getElementById('pieChart')
+  if(pieCtx){ charts.pie=new Chart(pieCtx,{type:'doughnut',data:{labels:['Fixas','Variáveis','Cartão'],datasets:[{data:[totalF,totalV,totalL],backgroundColor:['#3b82f6','#f59e0b','#a855f7'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#9ca3af',font:{size:11},padding:12}}}}})}
+  const rendaCtx=document.getElementById('rendaChart')
+  if(rendaCtx&&state.rendas.length>0){ charts.renda=new Chart(rendaCtx,{type:'doughnut',data:{labels:state.rendas.map(r=>r.fonte),datasets:[{data:state.rendas.map(r=>r.valor),backgroundColor:['#1D9E75','#3b82f6','#f59e0b','#a855f7','#ef4444'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#9ca3af',font:{size:11},padding:12}}}}})}
+}
+
+// ── AUTH ──────────────────────────────────────────────────
+function renderAuth(){
+  // Verifica se voltou da Kiwify com e-mail na URL
+  // Ex: https://seuapp.com?email=cliente@email.com&order=xxx
+  const params  = new URLSearchParams(window.location.search)
+  const emailKiwify = params.get('email') || ''
+  const orderKiwify = params.get('order') || params.get('order_id') || ''
+
+  // Se voltou da Kiwify com e-mail → mostra tela de criar senha
+  if(emailKiwify) return renderCriarSenha(emailKiwify, orderKiwify)
+
+  return `<div class="auth-wrapper"><div class="auth-bg"></div>
+  <div class="auth-card">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo-icon"><i class="ti ti-chart-pie"></i></div>
+      <div>
+        <div class="auth-brand">FinPro</div>
+        <div class="auth-tagline">Controle financeiro inteligente</div>
+      </div>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="field" style="margin-bottom:.75rem;">
+      <label>E-mail</label>
+      <input id="login-email" type="email" placeholder="seu@email.com" autocomplete="email">
+    </div>
+    <div class="field" style="margin-bottom:.75rem;">
+      <label>Senha</label>
+      <input id="login-pw" type="password" placeholder="••••••••"
+        autocomplete="current-password" onkeydown="if(event.key==='Enter')handleLogin()">
+    </div>
+    <div id="login-error" class="auth-error" style="display:none;"></div>
+    <button class="btn-primary full" id="login-btn" onclick="handleLogin()">
+      <i class="ti ti-login"></i> Entrar
+    </button>
+    <button class="btn-ghost" onclick="handleForgot()" style="font-size:12px;color:var(--text3);">
+      Esqueci minha senha
+    </button>
+
+    <!-- DIVISOR -->
+    <div style="display:flex;align-items:center;gap:10px;margin:1.25rem 0;">
+      <div style="flex:1;height:0.5px;background:var(--border);"></div>
+      <span style="font-size:11px;color:var(--text3);">Novo por aqui?</span>
+      <div style="flex:1;height:0.5px;background:var(--border);"></div>
+    </div>
+
+    <!-- CTA — Criar acesso vai direto para Kiwify -->
+    <a href="${KIWIFY_URL}" target="_blank" style="text-decoration:none;">
+      <div class="kiwify-cta">
+        <div class="kiwify-cta-left">
+          <div style="font-size:15px;font-weight:700;color:var(--text);">Criar meu acesso</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px;">Assine e comece agora</div>
+        </div>
+        <div class="kiwify-cta-right">
+          <div style="font-size:11px;color:var(--text3);text-decoration:line-through;">R$ 39,90</div>
+          <div style="font-size:20px;font-weight:800;color:var(--green);line-height:1;">R$ 19,90</div>
+          <div style="font-size:10px;color:var(--text3);">/mês</div>
+        </div>
+        <i class="ti ti-arrow-right" style="color:var(--green);font-size:18px;flex-shrink:0;"></i>
+      </div>
+    </a>
+
+    <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:.75rem;line-height:1.7;">
+      🔒 Pagamento seguro · Cancele quando quiser<br>
+      Cartão · PIX · Boleto
+    </div>
+
+  </div></div>`
+}
+
+// ── CRIAR SENHA — após retorno da Kiwify ──────────────────
+function renderCriarSenha(email, orderId){
+  return `<div class="auth-wrapper"><div class="auth-bg"></div>
+  <div class="auth-card">
+
+    <div style="text-align:center;margin-bottom:1.5rem;">
+      <div style="width:56px;height:56px;background:var(--green-bg);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto .75rem;">🎉</div>
+      <div style="font-family:var(--font-d);font-size:18px;font-weight:700;">Compra confirmada!</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:4px;">Crie sua senha para acessar o FinPro</div>
+    </div>
+
+    <!-- E-mail já preenchido e bloqueado -->
+    <div class="field" style="margin-bottom:.75rem;">
+      <label>E-mail</label>
+      <input type="email" value="${email}" disabled
+        style="background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;font-size:13px;color:var(--text2);width:100%;opacity:.7;">
+    </div>
+    <div class="field" style="margin-bottom:.75rem;">
+      <label>Crie uma senha</label>
+      <input id="cs-pw" type="password" placeholder="mín. 6 caracteres"
+        autocomplete="new-password" onkeydown="if(event.key==='Enter')handleCriarSenha('${email}','${orderId}')">
+    </div>
+    <div class="field" style="margin-bottom:.75rem;">
+      <label>Confirme a senha</label>
+      <input id="cs-pw2" type="password" placeholder="repita a senha"
+        onkeydown="if(event.key==='Enter')handleCriarSenha('${email}','${orderId}')">
+    </div>
+    <div id="cs-error" class="auth-error" style="display:none;"></div>
+
+    <button class="btn-primary full" id="cs-btn" onclick="handleCriarSenha('${email}','${orderId}')">
+      <i class="ti ti-rocket"></i> Acessar o FinPro
+    </button>
+
+    <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:.75rem;">
+      Você vai usar <strong>${email}</strong> + sua senha para entrar.
+    </div>
+  </div></div>`
+}
+
+// ── BLOQUEIO — usuário logado mas sem plano ativo ─────────
+function renderBloqueio(){
+  const nome = state.profile?.nome || state.user?.email || 'usuário'
+  return `<div class="auth-wrapper"><div class="auth-bg"></div>
+  <div class="auth-card" style="max-width:480px;">
+
+    <div style="text-align:center;margin-bottom:1.5rem;">
+      <div style="width:56px;height:56px;background:var(--amber-bg);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto .75rem;">⏳</div>
+      <div style="font-family:var(--font-d);font-size:18px;font-weight:700;">Olá, ${nome}!</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:4px;">Seu acesso ainda não foi ativado.</div>
+    </div>
+
+    <div style="background:var(--bg3);border-radius:var(--radius);padding:1rem;margin-bottom:1.25rem;font-size:13px;color:var(--text2);line-height:1.7;">
+      Se você acabou de comprar, aguarde alguns instantes e atualize a página.<br>
+      Se o problema persistir, entre em contato pelo suporte.
+    </div>
+
+    <!-- CTA principal -->
+    <a href="${KIWIFY_URL}" target="_blank" style="text-decoration:none;">
+      <div class="kiwify-cta">
+        <div class="kiwify-cta-left">
+          <div style="font-size:15px;font-weight:700;color:var(--text);">Assinar o FinPro</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px;">Ative seu acesso agora</div>
+        </div>
+        <div class="kiwify-cta-right">
+          <div style="font-size:20px;font-weight:800;color:var(--green);line-height:1;">R$ 19,90</div>
+          <div style="font-size:10px;color:var(--text3);">/mês</div>
+        </div>
+        <i class="ti ti-arrow-right" style="color:var(--green);font-size:18px;flex-shrink:0;"></i>
+      </div>
+    </a>
+
+    <div style="display:flex;gap:8px;margin-top:1rem;">
+      <button class="btn-secondary" style="flex:1;justify-content:center;" onclick="window.location.reload()">
+        <i class="ti ti-refresh"></i> Já comprei, atualizar
+      </button>
+      <button class="btn-secondary" style="flex:1;justify-content:center;" onclick="signOut()">
+        <i class="ti ti-logout"></i> Sair
+      </button>
+    </div>
+
+    <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:1rem;">
+      Dúvidas? Fale no suporte via e-mail cadastrado na Kiwify.
+    </div>
+  </div>
+</div>`
+}
+function renderShell(){
+  const navItems=[
+    {id:'dashboard',icon:'ti-layout-dashboard',label:'Dashboard'},
+    {id:'fixas',icon:'ti-lock',label:'Contas Fixas'},
+    {id:'variaveis',icon:'ti-arrows-down-up',label:'Variáveis',badge:state.variaveis.filter(c=>c.status==='atrasado').length||0},
+    {id:'cartoes',icon:'ti-credit-card',label:'Cartões'},
+    {id:'rendas',icon:'ti-building-bank',label:'Rendas'},
+    {id:'relatorios',icon:'ti-chart-bar',label:'Relatórios'},
+    {id:'configuracoes',icon:'ti-settings',label:'Configurações'},
+  ]
+  return `
+<nav class="sidebar" id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-icon"><i class="ti ti-chart-pie"></i></div>
+    <div class="sb-logo-text"><span class="sb-brand">FinPro</span><span class="sb-user">${state.profile?.nome||'Usuário'}</span></div>
+    <button class="sb-collapse" onclick="toggleSidebar()"><i class="ti ti-layout-sidebar-left-collapse" id="sb-ci"></i></button>
+  </div>
+  <div class="sb-mes">
+    <button onclick="changeMes(-1)"><i class="ti ti-chevron-left"></i></button>
+    <span>${mesLabel(state.mes)}</span>
+    <button onclick="changeMes(1)"><i class="ti ti-chevron-right"></i></button>
+  </div>
+  <div class="sb-nav">
+    ${navItems.map(p=>`<button class="sb-item ${state.page===p.id?'active':''}" onclick="navTo('${p.id}')"><i class="ti ${p.icon}"></i><span>${p.label}</span>${p.badge?`<span class="sb-badge">${p.badge}</span>`:''}</button>`).join('')}
+  </div>
+  <div class="sb-footer">
+    <button class="sb-item" onclick="signOut()"><i class="ti ti-logout"></i><span>Sair</span></button>
+    <div class="sb-plan">${state.profile?.plano==='pro'?'⭐ Pro':'🆓 Free'}</div>
+  </div>
+</nav>
+<nav class="bottom-nav">
+  ${navItems.slice(0,5).map(p=>`<button class="bn-item ${state.page===p.id?'active':''}" onclick="navTo('${p.id}')"><i class="ti ${p.icon}"></i><span>${p.label.split(' ')[0]}</span>${p.badge?`<span class="bn-badge">${p.badge}</span>`:''}</button>`).join('')}
+</nav>
+<button class="fab" id="voice-btn" onclick="startVoice()" title="Registrar despesa por voz"><i class="ti ti-microphone"></i></button>
+<main class="main-content" id="main-content"><div class="page-wrap" id="page-content"></div></main>
+<div class="modal-overlay" id="voice-modal">
+  <div class="modal">
+    <h3><i class="ti ti-microphone" style="color:var(--green);"></i> O que entendi</h3>
+    <p id="voice-texto-original" style="font-size:12px;color:var(--text3);font-style:italic;"></p>
+    <div class="field" style="margin-bottom:.75rem;"><label>Descrição</label><input id="voice-desc" type="text"></div>
+    <div class="field" style="margin-bottom:.75rem;"><label>Valor (R$)</label><input id="voice-valor" type="number"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('voice-modal').classList.remove('show')">Cancelar</button>
+      <button class="btn-confirm" onclick="confirmVoice()"><i class="ti ti-check"></i> Confirmar</button>
+    </div>
+  </div>
+</div>
+<div class="pwa-install-bar" id="pwa-bar" style="display:none;">
+  <i class="ti ti-device-mobile-down"></i><span>Instale o FinPro na tela inicial!</span>
+  <button onclick="installPWA()">Instalar</button>
+  <button onclick="this.parentElement.style.display='none'" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:0 4px;">×</button>
+</div>`
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────
+function pgDashboard(){
+  const {totalR,totalF,totalV,totalL,saldo}=calcTotais()
+  const {score,label,cor,comp}=calcScore()
+  const atrasadas=state.variaveis.filter(c=>c.status==='atrasado')
+  const proximos=getVencProximos()
+  return `
+<div class="page-header">
+  <div><h2><i class="ti ti-layout-dashboard"></i> Dashboard</h2><p>${mesLabel(state.mes)}</p></div>
+  <div class="mes-nav">
+    <button onclick="changeMes(-1)"><i class="ti ti-chevron-left"></i></button>
+    <span>${mesLabel(state.mes)}</span>
+    <button onclick="changeMes(1)"><i class="ti ti-chevron-right"></i></button>
+  </div>
+</div>
+<div class="metrics-grid">
+  <div class="metric-card green"><div class="mc-label"><i class="ti ti-trending-up"></i> Receita</div><div class="mc-value">${fmt(totalR)}</div><div class="mc-sub">${state.rendas.length} fonte(s)</div></div>
+  <div class="metric-card blue"><div class="mc-label"><i class="ti ti-lock"></i> Fixas</div><div class="mc-value">${fmt(totalF)}</div><div class="mc-sub">${state.fixas.filter(f=>f.ativo).length} ativa(s)</div></div>
+  <div class="metric-card amber"><div class="mc-label"><i class="ti ti-clock"></i> A pagar</div><div class="mc-value">${fmt(totalV+totalL)}</div><div class="mc-sub">${atrasadas.length>0?`<span style="color:var(--red);">⚠️ ${atrasadas.length} atrasada(s)</span>`:'Em dia'}</div></div>
+  <div class="metric-card ${saldo>=0?'green':'red'}"><div class="mc-label"><i class="ti ti-wallet"></i> Saldo</div><div class="mc-value" style="color:${saldo>=0?'var(--green)':'var(--red)'};">${fmt(saldo)}</div><div class="mc-sub">Estimado do mês</div></div>
+</div>
+<div class="grid2">
+  <div class="card">
+    <div class="card-title"><i class="ti ti-brain"></i> Score financeiro</div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div class="score-ring">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="34" fill="none" stroke="var(--bg3)" stroke-width="7"/>
+          <circle cx="40" cy="40" r="34" fill="none" stroke="${cor}" stroke-width="7" stroke-linecap="round"
+            stroke-dasharray="213.63" stroke-dashoffset="${213.63-(213.63*score/100)}" transform="rotate(-90 40 40)" style="transition:.6s;"/>
+        </svg>
+        <div class="score-num" style="color:${cor};">${score}</div>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:700;">${label}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px;">${totalR>0?`Comprometimento: ${Math.round((comp||0)*100)}%`:'Adicione rendas para calcular'}</div>
+      </div>
+    </div>
+    <div class="alert-box ${atrasadas.length>0?'danger':'ok'}" style="margin-top:12px;">
+      <i class="ti ${atrasadas.length>0?'ti-alert-circle':'ti-thumb-up'}"></i>
+      <div>${atrasadas.length>0?`<strong>${atrasadas.length} conta(s) atrasada(s):</strong> ${atrasadas.map(c=>c.desc).join(', ')}`:'Nenhum alerta para este mês!'}</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><i class="ti ti-bell-ringing"></i> Vencimentos próximos <span style="font-weight:400;color:var(--text3);">(7 dias)</span></div>
+    ${proximos.length===0?'<p style="font-size:13px;color:var(--text3);">Nenhum vencimento nos próximos 7 dias 🎉</p>':proximos.map(p=>`
+    <div class="venc-row">
+      <div><span style="font-size:13px;">${p.desc}</span> <span class="badge ${p.tipo==='fixa'?'b-blue':'b-amber'}" style="font-size:9px;">${p.tipo}</span></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;font-weight:600;">${fmt(p.valor)}</span>
+        <span class="dias-chip ${p.dias===0?'hoje':p.dias<=2?'urgente':'ok'}">${p.dias===0?'Hoje':p.dias===1?'Amanhã':p.dias+'d'}</span>
+      </div>
+    </div>`).join('')}
+  </div>
+</div>
+<div class="grid2">
+  <div class="card"><div class="card-title"><i class="ti ti-chart-bar"></i> Visão geral</div><div style="position:relative;height:200px;"><canvas id="barChart"></canvas></div></div>
+  <div class="card">
+    <div class="card-title"><i class="ti ti-credit-card"></i> Cartões</div>
+    ${state.cartoes.length===0?`<p style="font-size:13px;color:var(--text3);">Nenhum cartão. <button class="link-btn" onclick="navTo('cartoes')">Adicionar →</button></p>`:state.cartoes.map(c=>{
+      const pct=c.limite>0?Math.min(100,Math.round((c.usado/c.limite)*100)):0
+      const barCor=pct>80?'var(--red)':pct>50?'var(--amber)':'var(--green)'
+      return `<div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+          <span style="font-weight:500;display:flex;align-items:center;gap:6px;">
+            <span style="width:18px;height:18px;border-radius:3px;background:${c.cor}22;color:${c.cor};display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;">${c.sigla}</span>${c.nome}
+          </span>
+          <span style="color:var(--text3);font-size:11px;">${fmt(c.usado)} / ${fmt(c.limite)}</span>
+        </div>
+        <div class="prog-bar"><div style="width:${pct}%;background:${barCor};height:100%;border-radius:99px;transition:.3s;"></div></div>
+      </div>`}).join('')}
+  </div>
+</div>`
+}
+
+// ── FIXAS ─────────────────────────────────────────────────
+function pgFixas(){
+  return `<div class="page-header"><div><h2><i class="ti ti-lock" style="color:var(--blue);"></i> Contas Fixas</h2><p>Despesas mensais recorrentes</p></div></div>
+<div class="card">
+  <table class="data-table">
+    <thead><tr><th>Descrição</th><th>Dia</th><th>Valor</th><th>Casal</th><th>Status</th><th></th></tr></thead>
+    <tbody>${state.fixas.length===0?'<tr><td colspan="6" class="empty">Nenhuma conta fixa.</td></tr>':state.fixas.map(f=>`<tr style="${!f.ativo?'opacity:.45':''}"><td>${f.desc}</td><td>Dia ${f.dia}</td><td><strong>${fmt(myVal(f,f.valor))}</strong>${f.casal?'<span class="badge b-pink">50%</span>':''}</td><td><label class="toggle-sm"><input type="checkbox" ${f.casal?'checked':''} onchange="const f=state.fixas.find(x=>x.id==='${f.id}');if(f){f.casal=this.checked;render()}"><span class="toggle-track"></span></label></td><td><button class="toggle-status ${f.ativo?'on':''}" onclick="toggleFixa('${f.id}')">${f.ativo?'Ativo':'Inativo'}</button></td><td><button class="btn-del" onclick="delFixa('${f.id}')"><i class="ti ti-trash"></i></button></td></tr>`).join('')}</tbody>
+  </table>
+  <div class="form-inline" style="grid-template-columns:1fr 70px 1fr 100px auto;margin-top:1rem;">
+    <div class="field"><label>Descrição</label><input id="f-desc" type="text" placeholder="Ex: Aluguel"></div>
+    <div class="field"><label>Dia</label><input id="f-dia" type="number" min="1" max="31" placeholder="10"></div>
+    <div class="field"><label>Valor (R$)</label><input id="f-valor" type="number" placeholder="0,00"></div>
+    <div class="field"><label>Modo casal</label><label class="toggle-sm" style="margin-top:6px;"><input type="checkbox" id="f-casal"><span class="toggle-track"></span></label></div>
+    <div class="field"><label>&nbsp;</label><button class="btn-primary" onclick="addFixa()"><i class="ti ti-plus"></i> Add</button></div>
+  </div>
+</div>`
+}
+
+// ── VARIÁVEIS ─────────────────────────────────────────────
+function pgVariaveis(){
+  return `<div class="page-header"><div><h2><i class="ti ti-arrows-down-up" style="color:var(--amber);"></i> Contas Variáveis</h2><p>${mesLabel(state.mes)}</p></div></div>
+<div class="card">
+  <table class="data-table">
+    <thead><tr><th>Descrição</th><th>Venc.</th><th>Valor</th><th>Parc.</th><th>Status</th><th></th></tr></thead>
+    <tbody>${state.variaveis.length===0?'<tr><td colspan="6" class="empty">Nenhuma conta variável.</td></tr>':state.variaveis.map(c=>{
+      const d=c.data.split('-')
+      return `<tr><td>${c.desc}</td><td>${d[2]}/${d[1]}</td><td><strong>${fmt(myVal(c,c.valor))}</strong>${c.casal?'<span class="badge b-pink">50%</span>':''}</td><td>${c.parcelas>1?`<span class="badge b-purple">${c.parcelas}x</span>`:c.parcelas===1?'<span class="badge b-green" style="font-size:9px;">Última</span>':''}</td><td><span class="badge ${c.status==='pago'?'b-green':c.status==='atrasado'?'b-red':'b-amber'}">${c.status}</span></td><td style="display:flex;gap:4px;">${c.status!=='pago'?`<button class="btn-ok" onclick="markPago('${c.id}')"><i class="ti ti-check"></i></button>`:''}<button class="btn-del" onclick="delVariavel('${c.id}')"><i class="ti ti-trash"></i></button></td></tr>`}).join('')}</tbody>
+  </table>
+  <div class="form-inline" style="grid-template-columns:1fr 1fr 1fr 60px 90px auto;margin-top:1rem;">
+    <div class="field"><label>Descrição</label><input id="v-desc" type="text" placeholder="Ex: Médico"></div>
+    <div class="field"><label>Vencimento</label><input id="v-data" type="date"></div>
+    <div class="field"><label>Valor (R$)</label><input id="v-valor" type="number" placeholder="0,00"></div>
+    <div class="field"><label>Parc.</label><input id="v-parc" type="number" min="1" placeholder="1"></div>
+    <div class="field"><label>Casal</label><label class="toggle-sm" style="margin-top:6px;"><input type="checkbox" id="v-casal"><span class="toggle-track"></span></label></div>
+    <div class="field"><label>&nbsp;</label><button class="btn-primary" onclick="addVariavel()"><i class="ti ti-plus"></i></button></div>
+  </div>
+</div>`
+}
+
+// ── CARTÕES ───────────────────────────────────────────────
+function pgCartoes(){
+  return `<div class="page-header"><div><h2><i class="ti ti-credit-card" style="color:var(--purple);"></i> Cartões de Crédito</h2></div></div>
+<div class="cards-grid">
+  ${state.cartoes.map(c=>{
+    const pct=c.limite>0?Math.min(100,Math.round((c.usado/c.limite)*100)):0
+    const barCor=pct>80?'var(--red)':pct>50?'var(--amber)':'var(--green)'
+    return `<div class="cartao-visual-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <div style="width:42px;height:42px;border-radius:10px;background:${c.cor}22;color:${c.cor};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;">${c.sigla}</div>
+        <div style="flex:1;"><div style="font-size:14px;font-weight:600;">${c.nome}</div><div style="font-size:11px;color:var(--text3);">Limite: ${fmt(c.limite)}</div></div>
+        <button class="btn-del" onclick="delCartao('${c.id}')"><i class="ti ti-trash"></i></button>
+      </div>
+      <div class="prog-bar" style="margin-bottom:8px;"><div style="width:${pct}%;background:${barCor};height:100%;border-radius:99px;"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;text-align:center;">
+        <div style="background:var(--bg3);border-radius:6px;padding:8px;"><div style="font-weight:600;color:var(--green);">${fmt(Math.max(0,c.limite-c.usado))}</div><div style="color:var(--text3);">Disponível</div></div>
+        <div style="background:var(--bg3);border-radius:6px;padding:8px;"><div style="font-weight:600;color:${barCor};">${fmt(c.usado)} (${pct}%)</div><div style="color:var(--text3);">Usado</div></div>
+      </div>
+    </div>`}).join('')}
+  <div class="cartao-add-card" onclick="const f=document.getElementById('add-cartao-form');f.style.display=f.style.display==='none'?'block':'none'"><i class="ti ti-plus"></i><span>Novo cartão</span></div>
+</div>
+<div class="card" id="add-cartao-form" style="display:none;margin-bottom:1rem;">
+  <div class="card-title"><i class="ti ti-credit-card"></i> Adicionar cartão</div>
+  <div class="form-inline" style="grid-template-columns:1fr 60px 1fr 1fr auto;">
+    <div class="field"><label>Nome</label><input id="nc-nome" type="text" placeholder="Nubank"></div>
+    <div class="field"><label>Sigla</label><input id="nc-sigla" type="text" maxlength="2" placeholder="NU" style="text-transform:uppercase;letter-spacing:2px;font-weight:700;"></div>
+    <div class="field"><label>Limite (R$)</label><input id="nc-limite" type="number" placeholder="5000"></div>
+    <div class="field"><label>Cor</label><input id="nc-cor" type="color" value="#8b5cf6" style="width:100%;height:36px;border-radius:6px;border:none;cursor:pointer;background:transparent;"></div>
+    <div class="field"><label>&nbsp;</label><button class="btn-primary" onclick="addCartao()"><i class="ti ti-plus"></i> Add</button></div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-title" style="justify-content:space-between;"><span><i class="ti ti-list"></i> Lançamentos — ${mesLabel(state.mes)}</span></div>
+  <table class="data-table">
+    <thead><tr><th>Descrição</th><th>Cartão</th><th>Valor</th><th>Casal</th><th></th></tr></thead>
+    <tbody>${state.lancamentos.length===0?'<tr><td colspan="5" class="empty">Nenhum lançamento.</td></tr>':state.lancamentos.map(l=>`<tr><td>${l.desc}</td><td><span style="font-size:10px;background:var(--bg3);padding:2px 6px;border-radius:99px;">${l.cartoes?.nome||'—'}</span></td><td style="color:var(--red);font-weight:500;">${fmt(myVal(l,l.valor))}${l.casal?'<span class="badge b-pink">50%</span>':''}</td><td><label class="toggle-sm"><input type="checkbox" ${l.casal?'checked':''} onchange="const l=state.lancamentos.find(x=>x.id==='${l.id}');if(l){l.casal=this.checked;render()}"><span class="toggle-track"></span></label></td><td><button class="btn-del" onclick="delLanc('${l.id}')"><i class="ti ti-trash"></i></button></td></tr>`).join('')}</tbody>
+  </table>
+  <div class="form-inline" style="grid-template-columns:1fr 1fr 1fr 90px auto;margin-top:1rem;">
+    <div class="field"><label>Descrição</label><input id="l-desc" type="text" placeholder="Ex: Mercado"></div>
+    <div class="field"><label>Cartão</label><select id="l-cartao">${state.cartoes.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select></div>
+    <div class="field"><label>Valor (R$)</label><input id="l-valor" type="number" placeholder="0,00"></div>
+    <div class="field"><label>Casal</label><label class="toggle-sm" style="margin-top:6px;"><input type="checkbox" id="l-casal"><span class="toggle-track"></span></label></div>
+    <div class="field"><label>&nbsp;</label><button class="btn-primary" onclick="addLanc()"><i class="ti ti-plus"></i></button></div>
+  </div>
+</div>`
+}
+
+// ── RENDAS ────────────────────────────────────────────────
+function pgRendas(){
+  const total=state.rendas.reduce((s,r)=>s+r.valor,0)
+  return `<div class="page-header"><div><h2><i class="ti ti-building-bank" style="color:var(--green);"></i> Rendas & Salários</h2></div></div>
+<div class="grid2">
+  <div class="card">
+    <div class="card-title"><i class="ti ti-building-bank"></i> Fontes de renda</div>
+    ${state.rendas.map(r=>`<div class="renda-row"><span>${r.fonte}</span><div style="display:flex;align-items:center;gap:8px;"><strong style="color:var(--green);">${fmt(r.valor)}</strong><button class="btn-del" onclick="delRenda('${r.id}')"><i class="ti ti-trash"></i></button></div></div>`).join('')||'<p style="font-size:13px;color:var(--text3);">Nenhuma renda.</p>'}
+    <div class="renda-total">Total: <strong style="color:var(--green);">${fmt(total)}</strong></div>
+    <div class="form-inline" style="grid-template-columns:1fr 1fr auto;margin-top:.75rem;">
+      <div class="field"><label>Fonte</label><input id="r-fonte" type="text" placeholder="Ex: Salário"></div>
+      <div class="field"><label>Valor (R$)</label><input id="r-valor" type="number" placeholder="0,00"></div>
+      <div class="field"><label>&nbsp;</label><button class="btn-primary" onclick="addRenda()"><i class="ti ti-plus"></i></button></div>
+    </div>
+  </div>
+  <div class="card"><div class="card-title"><i class="ti ti-chart-pie"></i> Distribuição</div><div style="position:relative;height:200px;"><canvas id="rendaChart"></canvas></div></div>
+</div>`
+}
+
+// ── RELATÓRIOS ────────────────────────────────────────────
+function pgRelatorios(){
+  const {totalR,totalF,totalV,totalL,saldo}=calcTotais()
+  const poupPct=totalR>0?Math.round((saldo/totalR)*100):0
+  return `<div class="page-header"><div><h2><i class="ti ti-chart-bar" style="color:var(--amber);"></i> Relatórios</h2><p>${mesLabel(state.mes)}</p></div></div>
+<div class="metrics-grid" style="margin-bottom:1.25rem;">
+  <div class="metric-card green"><div class="mc-label">Receita</div><div class="mc-value">${fmt(totalR)}</div></div>
+  <div class="metric-card red"><div class="mc-label">Total Despesas</div><div class="mc-value">${fmt(totalF+totalV+totalL)}</div></div>
+  <div class="metric-card ${saldo>=0?'green':'red'}"><div class="mc-label">Saldo</div><div class="mc-value" style="color:${saldo>=0?'var(--green)':'var(--red)'};">${fmt(saldo)}</div></div>
+  <div class="metric-card blue"><div class="mc-label">Taxa poupança</div><div class="mc-value">${poupPct}%</div></div>
+</div>
+<div class="grid2">
+  <div class="card"><div class="card-title"><i class="ti ti-chart-donut"></i> Composição despesas</div><div style="position:relative;height:220px;"><canvas id="pieChart"></canvas></div></div>
+  <div class="card"><div class="card-title"><i class="ti ti-list-details"></i> Detalhamento</div>
+    <div style="font-size:12px;">
+      <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">Contas fixas ativas</span><span style="font-weight:600;">${fmt(totalF)}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">Contas variáveis</span><span style="font-weight:600;">${fmt(totalV)}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">Lançamentos cartão</span><span style="font-weight:600;">${fmt(totalL)}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">Total despesas</span><span style="font-weight:600;color:var(--red);">${fmt(totalF+totalV+totalL)}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:7px 0;"><span style="color:var(--text);">Saldo estimado</span><span style="font-weight:700;font-size:14px;color:${saldo>=0?'var(--green)':'var(--red)'};">${fmt(saldo)}</span></div>
+    </div>
+  </div>
+</div>`
+}
+
+// ── CONFIG ────────────────────────────────────────────────
+function pgConfig(){
+  return `<div class="page-header"><div><h2><i class="ti ti-settings"></i> Configurações</h2></div></div>
+<div class="config-section">
+  <div class="card-title" style="margin-bottom:.75rem;"><i class="ti ti-user-circle"></i> Perfil</div>
+  <div class="config-row"><label>Nome</label><input type="text" value="${state.profile?.nome||''}" style="font-size:13px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:6px 10px;color:var(--text);outline:none;width:200px;" onchange="if(state.profile)state.profile.nome=this.value"></div>
+  <div class="config-row"><label>Plano</label><span class="badge ${state.profile?.plano==='pro'?'b-amber':'b-green'}">${state.profile?.plano==='pro'?'⭐ Pro':'🆓 Free'}</span></div>
+  <div class="config-row"><label>% que você paga (modo casal)</label>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <input type="number" value="${state.profile?.casal_pct||50}" min="0" max="100" style="width:65px;font-size:13px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:5px 8px;color:var(--text);outline:none;" onchange="if(state.profile){state.profile.casal_pct=parseInt(this.value)||50;render()}">
+      <span style="font-size:12px;color:var(--text2);">% &nbsp;(parceiro: ${100-(state.profile?.casal_pct||50)}%)</span>
+    </div>
+  </div>
+</div>
+<div class="config-section">
+  <div class="card-title" style="margin-bottom:.75rem;"><i class="ti ti-bell"></i> Notificações</div>
+  <div class="config-row"><label>Alertas de vencimento</label><button class="btn-secondary" onclick="enableNotifications()"><i class="ti ti-bell-ringing"></i> Ativar notificações</button></div>
+</div>
+<div class="config-section">
+  <div class="card-title" style="margin-bottom:.75rem;"><i class="ti ti-device-mobile"></i> PWA — Instalar no celular</div>
+  <div class="config-row"><label>Adicionar à tela inicial</label><button class="btn-secondary" onclick="installPWA()"><i class="ti ti-download"></i> Instalar app</button></div>
+  <div style="font-size:12px;color:var(--text3);padding:.5rem 0;line-height:1.6;">
+    📱 <strong>Android:</strong> Chrome → Menu ⋮ → "Adicionar à tela inicial"<br>
+    🍎 <strong>iPhone:</strong> Safari → Botão Compartilhar ↑ → "Adicionar à Tela de Início"
+  </div>
+</div>
+<div class="config-section">
+  <div class="card-title" style="margin-bottom:.75rem;"><i class="ti ti-info-circle"></i> Sobre o FinPro</div>
+  <div class="config-row"><label>Versão</label><span style="font-size:12px;color:var(--text3);">v1.0 PWA SaaS</span></div>
+  <div class="config-row"><label>Stack</label><span style="font-size:12px;color:var(--text3);">Supabase + Vercel + Vite PWA</span></div>
+  <div class="config-row"><label>Sair da conta</label><button class="btn-danger" onclick="signOut()"><i class="ti ti-logout"></i> Sair</button></div>
+</div>`
+}
+
+function showErr(tab, msg){
+  const el = document.getElementById(tab+'-error')
+  if(el){ el.style.display='block'; el.style.color='var(--red)'; el.style.background='var(--red-bg)'; el.style.border='0.5px solid var(--red)'; el.textContent=msg }
+  const btn = document.getElementById(tab+'-btn')
+  if(btn){ btn.disabled=false; btn.innerHTML=tab==='login'?'<i class="ti ti-login"></i> Entrar':'<i class="ti ti-user-plus"></i> Criar conta grátis' }
+}
+
+// ══════════════════════════════════════════════════════════
+// PWA & INIT — REAL
+// ══════════════════════════════════════════════════════════
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); state.installPrompt = e
+  const b = document.getElementById('pwa-bar'); if(b) b.style.display='flex'
+})
+
+document.addEventListener('keydown', e => {
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return
+  if(e.key==='Escape') document.querySelectorAll('.modal-overlay.show').forEach(m=>m.classList.remove('show'))
+  const map={'1':'dashboard','2':'fixas','3':'variaveis','4':'cartoes','5':'rendas','6':'relatorios','7':'configuracoes'}
+  if(map[e.key]) navTo(map[e.key])
+})
+
+// Registra SW
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('data:application/javascript,').catch(()=>{})
+}
+
+// Escuta mudanças de auth (login/logout/refresh)
+_supa.auth.onAuthStateChange(async (event, session) => {
+  if(session?.user){
+    state.user = session.user
+    await loadAll()
+    render()
+  } else {
+    state.user = null
+    render()
+  }
+})
+
+// Verifica sessão existente ao abrir o app
+async function init(){
+  render() // mostra tela de loading/auth
+  const { data } = await _supa.auth.getSession()
+  if(data?.session?.user){
+    state.user = data.session.user
+    await loadAll()
+    render()
+  }
+}
+
+init()
+</script>
+</body>
+</html>
