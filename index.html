@@ -242,9 +242,9 @@ a{color:var(--green);text-decoration:none;}
 </style>
 </head>
 <body>
-<div id="app"></div>
+<div id="app"><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;color:#94a3b8;font-family:sans-serif;">Carregando FinPro...</div></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
 
 <script>
 // ══════════════════════════════════════════════════════════
@@ -253,19 +253,56 @@ a{color:var(--green);text-decoration:none;}
 const SUPABASE_URL  = 'https://kfmivnhjmltjcuucoziu.supabase.co'
 const SUPABASE_KEY  = 'sb_publishable_DfN2BlkSpD1YKw1Ene4sZQ_RjVlON6t'
 
-window._supabaseReady = new Promise((resolve) => {
-  function tryInit() {
-    if (typeof supabase === 'undefined') {
-      setTimeout(tryInit, 50)
-      return
-    }
-    window._supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+// Aguarda o Supabase carregar antes de qualquer coisa
+function bootApp() {
+  if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
+    setTimeout(bootApp, 50)
+    return
+  }
+  try {
+    window._supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
     })
-    resolve()
+    startApp()
+  } catch (e) {
+    document.getElementById('app').innerHTML = '<div style="padding:2rem;color:#ef4444;font-family:sans-serif;text-align:center;">Erro ao conectar: ' + e.message + '</div>'
   }
-  tryInit()
-})
+}
+
+// Inicia o app — chamada após Supabase estar pronto
+async function startApp() {
+  // Listener de mudanças de auth
+  window._supa.auth.onAuthStateChange(async (event, session) => {
+    if(session?.user){
+      state.user = session.user
+      await loadAll()
+      render()
+    } else {
+      state.user = null
+      render()
+    }
+  })
+
+  // Verifica sessão existente
+  render() // mostra tela de auth/loading
+  try {
+    const { data } = await window._supa.auth.getSession()
+    if(data?.session?.user){
+      state.user = data.session.user
+      await loadAll()
+      render()
+    }
+  } catch(e) {
+    console.error('Erro init:', e)
+  }
+}
+
+// Dispara após DOM carregado
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootApp)
+} else {
+  bootApp()
+}
 
 // ── AUTH REAL ─────────────────────────────────────────────
 async function supaSignIn(email, pw) {
@@ -1493,34 +1530,7 @@ document.addEventListener('keydown', e => {
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('data:application/javascript,').catch(()=>{})
 }
-
-// Inicializa o app quando Supabase estiver pronto
-window._supabaseReady.then(async () => {
-  // Escuta mudanças de auth (login/logout/refresh)
-  window._supa.auth.onAuthStateChange(async (event, session) => {
-    if(session?.user){
-      state.user = session.user
-      await loadAll()
-      render()
-    } else {
-      state.user = null
-      render()
-    }
-  })
-
-  // Verifica sessão existente ao abrir o app
-  render() // mostra tela de auth primeiro
-  try {
-    const { data } = await window._supa.auth.getSession()
-    if(data?.session?.user){
-      state.user = data.session.user
-      await loadAll()
-      render()
-    }
-  } catch(e) {
-    console.error('Erro ao iniciar:', e)
-  }
-})
+// O app é iniciado por bootApp() no topo do script
 </script>
 </body>
 </html>
