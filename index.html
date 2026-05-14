@@ -541,24 +541,6 @@ async function handleCriarSenha(email, orderId){
     btn.disabled=false; btn.innerHTML='<i class="ti ti-rocket"></i> Acessar o FinPro'
   }
 }
-  const nome  = document.getElementById('signup-nome').value.trim()
-  const email = document.getElementById('signup-email').value.trim()
-  const pw    = document.getElementById('signup-pw').value
-  if(!nome||!email||!pw){ showErr('signup','Preencha todos os campos.'); return }
-  if(pw.length<6){ showErr('signup','Senha deve ter pelo menos 6 caracteres.'); return }
-  const btn = document.getElementById('signup-btn')
-  btn.disabled=true; btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Criando...'
-  try {
-    await supaSignUp(email, pw, nome)
-    const err = document.getElementById('signup-error')
-    err.style.display='block'; err.style.color='var(--green)'; err.style.background='var(--green-bg)'; err.style.border='0.5px solid var(--green)'
-    err.textContent='✅ Conta criada! Verifique seu e-mail para confirmar.'
-  } catch(e) {
-    showErr('signup', e.message)
-  } finally {
-    btn.disabled=false; btn.innerHTML='<i class="ti ti-user-plus"></i> Criar conta grátis'
-  }
-}
 
 async function handleForgot(){
   const email = document.getElementById('login-email').value.trim()
